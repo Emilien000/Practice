@@ -2,103 +2,106 @@
 
 namespace app\models;
 
-class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
+use Yii;
+
+/**
+ * This is the model class for table "user".
+ *
+ * @property int $id
+ * @property string $username
+ * @property string $firstname
+ * @property string $lastname
+ * @property string $partonymic
+ * @property int $status
+ * @property string $password
+ * @property int $role
+ * @property string $email
+ *
+ * @property WorkingShift[] $workingShifts
+ */
+class User extends \yii\db\ActiveRecord implements \yii\web\IdentityInterface
 {
-    public $id;
-    public $username;
-    public $password;
-    public $authKey;
-    public $accessToken;
-
-    private static $users = [
-        '100' => [
-            'id' => '100',
-            'username' => 'admin',
-            'password' => 'admin',
-            'authKey' => 'test100key',
-            'accessToken' => '100-token',
-        ],
-        '101' => [
-            'id' => '101',
-            'username' => 'demo',
-            'password' => 'demo',
-            'authKey' => 'test101key',
-            'accessToken' => '101-token',
-        ],
-    ];
-
-
     /**
      * {@inheritdoc}
      */
+    public static function tableName()
+    {
+        return 'user';
+    }
+
     public static function findIdentity($id)
     {
-        return isset(self::$users[$id]) ? new static(self::$users[$id]) : null;
+        return self::findOne($id);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function findIdentityByAccessToken($token, $type = null)
-    {
-        foreach (self::$users as $user) {
-            if ($user['accessToken'] === $token) {
-                return new static($user);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Finds user by username
-     *
-     * @param string $username
-     * @return static|null
-     */
     public static function findByUsername($username)
     {
-        foreach (self::$users as $user) {
-            if (strcasecmp($user['username'], $username) === 0) {
-                return new static($user);
-            }
-        }
+        return self::findOne(['username' => $username]);
+    }
 
+    public function validatePassword($password)
+    {
+        return $this->password === $password;
+    }
+
+    public static function findIdentityByAccessToken($token, $type = null)
+    {
         return null;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getId()
     {
         return $this->id;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getAuthKey()
     {
-        return $this->authKey;
+        return null;
+    }
+
+    public function validateAuthKey($authKey)
+    {
+        return null;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function validateAuthKey($authKey)
+    public function rules()
     {
-        return $this->authKey === $authKey;
+        return [
+            [['username', 'firstname', 'lastname', 'partonymic', 'status', 'password', 'role', 'email'], 'required'],
+            [['status', 'role'], 'integer'],
+            [['username', 'firstname', 'lastname', 'partonymic'], 'string', 'max' => 50],
+            [['password', 'email'], 'string', 'max' => 100],
+        ];
     }
 
     /**
-     * Validates password
-     *
-     * @param string $password password to validate
-     * @return bool if password provided is valid for current user
+     * {@inheritdoc}
      */
-    public function validatePassword($password)
+    public function attributeLabels()
     {
-        return $this->password === $password;
+        return [
+            'id' => 'ID',
+            'username' => 'Username',
+            'firstname' => 'Firstname',
+            'lastname' => 'Lastname',
+            'partonymic' => 'Partonymic',
+            'status' => 'Status',
+            'password' => 'Password',
+            'role' => 'Role',
+            'email' => 'Email',
+        ];
+    }
+
+    /**
+     * Gets query for [[WorkingShifts]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getWorkingShifts()
+    {
+        return $this->hasMany(WorkingShift::class, ['user_id' => 'id']);
     }
 }
