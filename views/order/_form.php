@@ -6,6 +6,21 @@ use yii\widgets\ActiveForm;
 /** @var yii\web\View $this */
 /** @var app\models\Order $model */
 /** @var yii\widgets\ActiveForm $form */
+
+$user = Yii::$app->user->identity;
+
+$items = [
+    0 => 'Принят',
+];
+
+if ($user->role === 2) {
+    $items[1] = 'Готовится';
+    
+} else if ($user->role === 1 && $model->status === 1) {
+    $items[2] = 'Подано';
+    $items[3] = 'Оплачено';
+}
+
 ?>
 
 <div class="order-form">
@@ -16,22 +31,11 @@ use yii\widgets\ActiveForm;
 
     <?= $form->field($model, 'clients_count')->textInput() ?>
 
-    <?= $form->field($model, 'waiter_id')->textInput() ?>
-
-    <?= $form->field($model, 'cooker_id')->textInput() ?>
-
     <?= $form->field($model, 'drinks')->textarea(['rows' => 6]) ?>
 
     <?= $form->field($model, 'foods')->textarea(['rows' => 6]) ?>
 
-    <?= $form->field($model, 'status')->dropDownList([
-        0 => 'Принят',
-        1 => 'Ожидает повара',
-        2 => 'Готовится',
-        3 => 'Ожидает подачи',
-        4 => 'Подано',
-        5 => 'Оплачено'
-        ]) ?>
+    <?= $form->field($model, 'status')->dropDownList($items) ?>
 
 
     <div class="form-group">

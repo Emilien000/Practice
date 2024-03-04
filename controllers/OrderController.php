@@ -3,6 +3,7 @@
 namespace app\controllers;
 
 use app\models\Order;
+use Yii;
 use yii\data\ActiveDataProvider;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
@@ -39,7 +40,7 @@ class OrderController extends Controller
     public function actionIndex()
     {
         $dataProvider = new ActiveDataProvider([
-            'query' => Order::find(),
+            'query' => Order::find()->with('cooker', 'waiter'),
             /*
             'pagination' => [
                 'pageSize' => 50
@@ -66,7 +67,7 @@ class OrderController extends Controller
     public function actionView($id)
     {
         return $this->render('view', [
-            'model' => $this->findModel($id),
+            'model' => Order::find()->where(['id' => $id])->with('cooker', 'waiter')->one(),
         ]);
     }
 
@@ -80,6 +81,11 @@ class OrderController extends Controller
         $model = new Order();
 
         if ($this->request->isPost) {
+            $data = $this->request->post();
+
+            $model->waiter_id = Yii::$app->user->identity->id;
+            $model->cooker_id = $model->cooker_id ? $model->cooker_id : null;
+
             if ($model->load($this->request->post()) && $model->save()) {
                 return $this->redirect(['view', 'id' => $model->id]);
             }
@@ -103,8 +109,18 @@ class OrderController extends Controller
     {
         $model = $this->findModel($id);
 
-        if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id]);
+        if ($this->request->isPost) {
+            $data = $this->request->post();
+            $orderData = $data['Order'];
+            $user = Yii::$app->user->identity;
+    
+            if ($user->role === 2 && $orderData['status'] == 1) {
+                $model->cooker_id = $user->id;
+            }
+    
+            if ($model->load($data) && $model->save()) {
+                return $this->redirect(['view', 'id' => $model->id]);
+            }
         }
 
         return $this->render('update', [
